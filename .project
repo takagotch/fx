@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+  <name></name>
+  <comment></comment>
+  <projects>
+    <buildCommand>
+      <name>org.eclipse.managedbuilder.core.genmakebuilder</name>
+      <trigger>clean,incremental,</trigger>
+      <argument>
+      </argument>
+    </buildCommand>
+    <buildCommand>
+      <name>org.eclipse.cdt.managebuilder.core.ScannerConfigBuilder</name>
+      <triggers>full,incremental,</triggers>
+      <arguments>
+      </arguments>
+    </buildCommand>
+  </buildSpec>
+  <natures>
+    <nature>org.eclipse.cdt.core.ccnature</nature>
+    <nature>org.eclipse.cdt.core.cnature</nature>
+    <nature>org.eclipse.cdt.managebuilder.core.manageBuildNature</nature>
+    <nature>org.eclipse.cdt.manageduilder.core.ScannerConfigNature</nature>
+  </natures>
+</projectDescription>
+
+
