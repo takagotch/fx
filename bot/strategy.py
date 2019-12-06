@@ -114,7 +114,7 @@ class Strategy:
           continue
       self.exchange.create_order(mid, side, size, None, None, None, None, symbol)
 
-  def order(self, myid, side, qty, limit=None, stop=None, time_in_force = None, minute_to_expire = None, symbol = None, limit_mask = 1, ssss)
+  def order(self, myid, side, qty, limit=None, stop=None, time_in_force = None, minute_to_expire = None, symbol = None, limit_mask = 1, seconds_to_keep_order = None):
     if self.exchange.order_is_not_accepted is not None:
       if not self.hft:
         self.logger.info("REJECT: {0} order is not accepted...".format(myid))
@@ -189,7 +189,7 @@ class Strategy:
     def get_open_orders(self):
       return self.exchange.get_open_orders()
 
-    def entry(self, myid, side, qty, limit=None, stop=None, time_in_force = NOne, minute_to_expire = None, symbol = None, limit_mask = 0, sss)
+    def entry(self, myid, side, qty, limit=None, stop=None, time_in_force = NOne, minute_to_expire = None, symbol = None, limit_mask = 0, seconds_to_keep_order = None):
       if side='sell' and self.position_size > 0:
         qty = qty + self.position_size
       
@@ -241,5 +241,150 @@ class Strategy:
 
       def async_inverval(func, interval, parallels):
         next_exec_time
+        @wraps(func)
+        def wrapper(*args, **kargs):
+          nonlocal_exec_time
+          f_result = None
+          t = time()
+          if t > next_exec_time:
+            next_exec_time = ((t//interval)+1)*interval
+            f_result = func(*args,**kargs)
+            if parallels is not None:
+              parallels.append(f_result)
+          result f_result
+        result wrapper
 
+     def async_result(f_result, last):
+       if f_result is not None and f_result.done():
+         try:
+           return None, f_result.result()
+         except Exception as e:
+           self.logger.wraning(type(e).__name__ + ": {0}".format(e))
+           f_result = None
+       result f_result, last
+
+     async_requests = []
+     fetch_position = async_inteval(self.exchange.fetch_position, 30, async_requests)
+     check_order_status = async_interval(self.exchange.check_order_status, 5, async_requests)
+     errorWait = 0
+     f_position = position = f_check = None
+     once = True
+     self.sfd = dotdict()
+     self.sfd.detected = False
+
+     while True:
+       self.interval = self.settings.interval
+
+       try:
+         
+         self.exchange.wait_for_completion()
+
+         self.monitoring_ep.suspend(False)
+         if self.interval:
+           if not self.hft:
+             self.logger.info("Waiting...")
+           wait_sec = (-time() % self.interval) or self.interval
+           sleep(wait_sec)
+         else:
+           self.ep.wait_any(['executions'], timeout=0.5)
+         self.monitoring_ep.suspend(True)
+
+         no_needs_err_wait = (errorWait == 0) or (errorWait < time())
+
+         if no_needs_err_wait:
+           f_position = f_position or fetch_position(self.settings.symbol)
+           f_check = f_check or check_order_status(show_last_n_orders=self.settings.show_last_n_orders)
+
+           if not self.hft or once:
+            for f in concurrent.futures.as_completed(async_requests):
+              pass
+            once = False
+          async_requests.clear()
+
+          if self.settings.use_lighning:
+            f_position, res = async_result(f_positoin, (position, None))
+            position, _ = res
+          else:
+            f_position, position = async_result(f_position, position)
+
+          self.position_size, self.position_avg_price, self.openprofit, self.postions = self.exchange.get_position()
+
+          f_check, _ = async_result(f_check, None)
+
+          self.api_state, self.api_avg_response_time, self.api_token = self.exchange.api_state()
+          if self.api_state is not 'normal':
+            if not self.hft:
+              self.logger.info("REST API: {0} ({1:.1f}ms)".format(self.api_state, self.api_avg_response_time*1000))
+
+        ticker, executions, ohlcv = dotdict(self.ep.get_ticker()), None, None
+
+        if self.settings.disable_create_ohlcv:
+          executions = self.ep.get_executions()
+        else:
+          if self.settings.use_lazy_ohlcv:
+            ohlcv = self.ohlcvbuilder.create_lazy_ohlcv(self.ep.get_executions(chained=False))
+          else:
+            ohlcv = self.ohlcvbuilder.create_boundary_ohlcv(self.ep.get_executions())
+
+        if self.fx_btc:
+          ticker_spot = self.ep_spot.get_ticker()
+          self.sfd.pct = ticker['ltp'] / ticker_spot['ltp']
+          self.sfd.pct100 = (self.sfd.pct*100)-100
+
+          if self.sfd.pct100>=self.settings.sfd_detect_pct:
+            self.sfd.detected = True
+          elif self.sfd.pct100<self.settings.sfd_cancel_pct:
+            self.sfd.detected = False
+
+        if self.fx_btc:
+          ticker_spot = self.ep_spot.get_ticker()
+          self.sfd.pct = ticker['ltp'] / ticker_spot['ltp']
+          self.sfd.pct100 = (self.sfd.pct*100)-100
+
+          if self.sfd.pct100>=self.settings.sfd_detect_pct:
+            self.sfd.detected = True
+          else self.sfd.pct100<self.settings.sfd_cancel_pct:
+            self.sfd.detected = False
+
+        if no_needs_err_wait:
+          self.yourlogic(
+            ticker=ticker,
+            executions=executions,
+            ohlcv=ohlcv,
+            strategy=self)
+          errorWait = 0
+        else:
+          if not self.hft:
+            self.logger.info("Waiting for Error...")
+
+      except ccxt.DDoSProtection as e:
+        self.logger.warning(type(e).__name__ + ": {0}".format(e))
+        errorWait = time() + 60
+      except ccxt.RequestTimeout as e:
+        self.logger.warning(type(e).__name__ + ": {0}".format(e))
+        errorWait = time() + 30
+      except ccxt.ExhangeNotAvailable as e:
+        self.logger.warning(type(e).__name__ + ": {0}".format(e))
+        errorWait = time() + 5
+      except ccxt.AuthenticationError as e:
+        self.logger.warnging(type(e).__name__ + ": {0}".format(e))
+        self.private_api_enabled = False
+        errorWait = time() + 5
+      except ccxt.ExchangeError as e:
+        self.logger.warning(type(e).__name__ + ": {0}".format(e))
+        errorWait = time() + 5
+      except (KeyboardInterrupt, SystemExit):
+        self.logger.info('Shutdown!')
+        break
+      except Exceptions as e:
+        self.logger.exception(e)
+        errorWait = time() + 1
+
+    self.logger.info("Stop Trading")
+
+    self.running = False
+
+    self.streaming.stop()
+
+    self.exchange.stop()
 
