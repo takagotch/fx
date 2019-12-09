@@ -1,0 +1,14 @@
+version: '2.1'
+services:
+
+  ccxt:
+    build:
+      context: .
+    volumes:
+     - .:/cxt
+     - /ccxt/node_modules/
+    entrypoint: /bin/bash
+    stdin_open: true
+    tty: true
+
+
