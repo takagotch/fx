@@ -468,14 +468,231 @@ class Exchange(object):
 
   def cost_to_precision(self, symbol, cost):
 
-  def
+  def price_to_precision(self, symbol, amount):
 
+  def amount_to_precision(self, symbol, amount):
 
+  def fee_to_precision(self, symbol, fee):
 
+  def currency_to_precision(self, currency, fee):
 
+  def set_markets(self, markets, currencies=None):
 
+  def load_markets(self, reload=False, params={}):
 
+  def load_accounts(self, reload=False, params={}):
 
+  def load_fees(self, reload=False):
+
+  def fetch_markets(self, params={}):
+
+  def fetch_currencies(self, params={}):
+
+  def fetch_fees(self):
+
+  def create_order(self, symbol, type, side, amount, price=None, params={}):
+
+  def cancel_order(self, id, symbol=None, params={}):
+
+  def fetch_bids_asks(self, symbols=None, params={}):
+
+  def fetch_ticker(self, symbol, params={}):
+
+  def fetch_tickers(self, symbols=None, params={}):
+
+  def fetch_order_status(self, id, symbol=None, params={}):
+
+  def purge_cached_orders(self, before):
+
+  def fetch_order(self, id, symbol=None, params={}):
+
+  def fetch_open_orders(self, symbol=NOne, since=NOne, limit=None, params={}):
+
+  def fetch_my_trades(self, symbol=None, since=None, limit=NOne, params={}):
+
+  def fetch_order_trades(self, id, symbol=NOne, params={}):
+
+  def fetch_transactions(self, symbol=None, since=None, limit=None, params={}):
+
+  def fetch_deposits(self, symbol=None, since=None, limit=None, params={}):
+
+  def fetch_withdrawals(self, symbol=None, since=None, limit=None, params={}):
+
+  def parse_ohlcv(self, ohlcvs, market=None, timeframe='1m', since=None, limit=None):
+
+  def parse_ohlcvs(self, ohlcvs, market=None, timeframe='1m', since=None, limit=None):
+
+  def parse_bid_ask():
+
+  def parse_bids_asks():
+
+  def fetch_l2_order_book():
+
+  def fetch_l2_order_book():
+
+  def parse_order_book():
+
+  def parse_balance(self, balance):
+
+  def fetch_partial_balance(self, part, params={}):
+
+  def fetch_free_balance(self, params={}):
+
+  def fetch_used_balance():
+
+  def fetch_total_balance():
+
+  def fetch_trading_fees():
+
+  def fetch_trading_fee():
+
+  def fetch_funding_fees():
+
+  def fetch_funding_fee():
+
+  def load_trading_limits():
+
+  def fetch_ohlcv():
+
+  def fetch_status():
+
+  def fetch_status():
+
+  def fetchOHLCV():
+
+  def parse_trading_view_ohlcv():
+
+  def convert_trading_view_to_ohlcv():
+
+  def convert_ohlcv_to_trading_view():
+
+  def build_ohlcv():
+
+  @staticmethod
+  def parse_timeframe(timeframe):
+
+  @staticmethod
+  def round_timeframe(timeframe, timestamp, direction=ROUND_DOWN):
+
+  def parse_trades():
+
+  def parse_ledger():
+
+  def parse_transactions():
+
+  def parse_orders():
+
+  def safe_currency_code():
+
+  def filter_by_value_since_limit():
+
+  def filter_by_symbol_since_limit():
+
+  def filter_by_currency_since_limit():
+
+  def filter_by_since_limit():
+
+  def filter_by_symbol():
+
+  def filter_by_array():
+
+  def currency():
+
+  def market():
+
+  def market_ids():
+
+  def calculate_fee():
+
+  def edit_limit_buy_order():
+
+  def edit_limit_sell_order():
+
+  def edit_limit_order():
+
+  def edit_order():
+
+  def create_limit_order():
+
+  def create_market_order():
+
+  def create_limit_buy_order():
+
+  def create_limit_sell_order():
+
+  def create_market_buy_order():
+
+  def create_market_sell_order():
+
+  def sign():
+
+  @staticmethod
+  def has_web3():
+
+  def check_required_dependencies():
+
+  def eth_decimals():
+
+  def eth_unit():
+
+  def fromWei():
+
+  def toWei():
+
+  def privateKeyToAddress():
+
+  def soliditySha3():
+
+  def solidityTypes():
+
+  def solidityValues():
+
+  def getZeroExOrderHash2(self, order):
+
+  def getZeroExOrderHash2(self, order):
+
+  def getZeroExOrderHash(self, order):
+
+  @staticmethod
+  def remove_0x_prefix(value):
+
+  def getZeroExOrderHashV2():
+
+  def signZeroExOrder():
+
+  def signZeroExOrderV2():
+
+  def _convertECSignatureToSignatureHex(self, signature):
+
+  def hashMessage():
+
+  @staticmethod
+  def signHash(hash, privateKey):
+
+  def signMessage():
+
+  def oath(self):
+
+  @staticmethod
+  def decimal_to_bytes(n, endian='big'):
+
+  @staticmethod
+  def totp(key):
+    def hex_to_dec(n):
+
+    def base32_bytes(n):
+
+  @staticmethod
+  def numberToLE(n, size):
+
+  @staticmethod
+  def numberToBE():
+
+  @staticmethod
+  def base16_to_binary(s):
+
+  @staticmethod
+  def integer_divide(a, b):
 
   @staticmethod
   def integer_pow(a, b):
