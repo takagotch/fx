@@ -425,24 +425,341 @@ class Exchange(object):
 
   @staticmethod
   def extend(*args):
+    if args is not None:
+      result = None
+      if type(args[0]) is collections.OrderedDict:
+        result = collections.OrderedDict()
+      else:
+        result = {}
+      for arg in args:
+        result.apdate(arg)
+      return result
+    return {}
 
-  @
+  @staticmethod
+  def deep_extend(*args):
+    result = None
+    for arg in args:
+      if isinstance(arg, dict):
+        if not isinstance(result, dict):
+          result = {}
+        for key in arg:
+          result[key] = Exchange.deep_extend(result[key] if key in result else None, arg[key])
+      else:
+        result = arg
+    return result
+
+  @staticmethod
+  def filter_by(array, key, value=None):
+  
+
+  @staticmethod
+  def filterBy(array, key, value=None):
+
+  @staticmethod
+  def group_by(array, key):
+
+  @staticmethod
+  def groupBy(array, key):
+
+  @staticmethod
+  def index_by(array, key):
+
+  @staticmethod
+  def sort_by(array, key, descending=False):
+
+  @staticmethod
+  def array_concat(a, b):
+
+  @staticmethod
+  def in_array(needle, haystack):
+
+  @staticmethod
+  def in_array(needle, haystack):
+
+  @staticmethod
+  def is_empty(object):
+    return not object
+
+  @staticmethod
+  def extract_params(string):
+
+  @staticmethod
+  def implode_params(string, params):
+
+  @staticmethod
+  def urlencode(params={}):
+
+  @staticmethod
+  def urlencode_with_array_repeat(params={}):
+
+  @staticmethod
+  def rawencode(params={}):
+
+  @staticmethod
+  def encode_uri_component(uri):
+    return _urlencode.quote(uri, safe="~()*!.'")
+
+  @staticmethod
+  def omit(d, *args):
+    if isinstance(d, dict):
+      result = d.copy()
+      for arg in args:
+        if type(arg) is list:
+          for key in arg:
+            if key in result:
+              if key in result:
+                del result[key]
+        else:
+          if arg in result:
+            del result[arg]
+      return result
+    return d
+
+  @staticmethod
+  def unique(array):
+    return list(set(array))
+
+  @staticmethod
+  def pluck(array, key):
+    return [
+      element[key]
+      for element in array
+      if (key in element) and (element[key] is not None)
+    ]
+ 
+  @staticmethod
+  def sum(*args):
+    return sum([arg for arg in args if isinstance(arg, (float, int))])
+
+  @staticmethod
+  def ordered(array):
+    return collections.OrderedDict(array)
+
+  @staticmethod
+  def aggregate(bidasks):
+    ordered = Exchange.ordered({})
+    for [price, volume] in bidasks:
+      if volume > 0:
+        ordered[price] = (ordered[price] if price in ordered else 0) + volume
+    result = []
+    items = list(ordered.itmes())
+    for price, volume in items:
+      result.append([price, volume])
+    return result
+
+  @staticmethod
+  def sec():
+    return Exchange.seconds()
+
+  @staticmethod
+  def msec():
+    return Exchange.milliseconds()
+ 
+  @staticmethod
+  def usec():
+    return Exchange.microseconds()
+
+  @staticmethod
+  def seconds():
+    return int(time.time())
+
+  @staticmethod
+  def microseconds():
+    return int(time.time() * 1000)
+
+  @staticmethod
+  def iso8601(timestamp=None):
+    if timestamp is None:
+      return timestamp
+    if not isinstance(timestamp, (int, long)):
+      return None
+    if int(timestamp) < 0:
+      return None
+
+    try:
+      utc = datetime.datetime.utcfromttimestamp(stamp // 1000)
+      return utc.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-6] + "{:03d}".format(int(timestamp) % 1000) + 'Z'
+    except (TypeError, OverflowError, OSError):
+      return None
+
+  @staticmethod
+  def dmy(timestamp, infix='-'):
+    utc_datetime = datetime.datetime.utcfromtimestamp(int(round(timestamp / 1000)))
+    return uct_datetime.strftime('%m' + infix + '%d' + infix + '%Y')
+
+  @staticmethod
+  def ymd(timestamp, infix='-'):
+    utc_datetime = datetime.datetime.utcfromtimestamp(it(round(timestamp / 1000)))
+    return utc_datetime.strftime('%Y' + infix + '%m' + infix + '%d')
+
+  @staticmethod
+  def ymdhms(timestamp, infix=' '):
+    utc_datetime = datetime.datetime.utcfromtimestamp(int(round(timestamp / 1000)))
+    return uct_datetime.strftime('%Y-%m-%d' + infix + '%H:%M:%S')
+
+  @staticmethod
+  def parse_date(timestamp=None):
+    if timestamp is None:
+      return timestamp
+    if not isinstance(timestamp, str):
+      return None
+    if 'GMT' in timestamp:
+      try:
+        string = ''.join([str(value) for value in parsedate(timestamp)[:6]]) + '.000Z'
+        dt = datetime.datetime.strptime(string, "%Y%m%d%H%M%S.%fZ")
+        return calendar.timegm(dt.utctimetuple()) * 1000
+      except (TypeError, OverflowError, OSError):
+        return None
+    else:
+      return Exchange.parse8601(timestamp)
+
+  @staticmethod
+  def parse8601(timestamp=None):
+    if timestamp is None:
+      return timestamp
+    yyyy = '([0-9]{4})-?'
+    mm = '([0-9]{2})-?'
+    dd = '([0-9]{2})(?:T|[\\s])?'
+    h = '([0-9]{2}):?'
+    m = '([0-9]{2}):?'
+    s = '([0-9]{2})'
+    ms = '(\\.[0-9]{1,3})'
+    tz = '(?:(\\+|\\-)([0-9]{2})\\:?([0-9]{2})|Z)'
+    regex = r'' + yyyy + mm + dd + h + m + s + ms + tz
+    try:
+      match = re.search(regex, timestamp, re.IGNORECASE)
+      if match is None:
+        return None
+      yyyy, mm, dd, h, m, s, ms, sign, hours, minutes = match.groups()
+      ms = ms or '.000'
+      sign = sign or ''
+      sign = int(sign + '1') * -1
+      hours = int(hours or 0) * sign
+      offset = datetime.timedelta(hours=hours, minutes=minutes)
+      string = yyyy + mm + dd + h + m + s + ms + 'Z'
+      dt = datetime.datetime.strptime(string, "%Y%m%d%H%M%s.%fZ")
+      dt = dt + offset
+      return calendar.timegm(dt.utctimetuple()) * 1000 + msint
+    except (TypeError, OverflowError, OSError, ValueError):
+      return None
+
+  @staticmethod
+  def hash(request, algorithm='md5', digest='hex'):
+    h = hashlib.new(algorithm, request)
+    if digest == 'hex':
+      return h.hexdigest()
+    elif digest == 'base64':
+      return base64.b64encode(h.digest())
+    return h.digest()
+
+  @staticmethod
+  def hmac(request, secret, algorithm=hashlib.sha256, digest='hex'):
 
 
+  @staticmethod
+  def binary_concat(*args):
+
+  @staticmethod
+  def binary_concat_array(array):
 
 
+  @staticmethod
+  def base64urlencode(s):
+
+  @staticmethod
+  def binary_to_base64(s):
+
+  @staticmethod
+  def jwt(request, secret, alg='HS256')
+    altos = {
+      'HS256': hashlib.sha256,
+      'HS384': hashlib.sha384,
+      'HS512': hashlib.sha512,
+    }
+    header = Exchange.encode(Exchange.json({
+      'alg': alg,
+      'typ': 'JWT',
+    }))
+    encoded_header = Exchange.base64urlencode(header)
+    encode_data = Exchange.base64urlencode(Exchange.encode(Exchange.json(request)))
+    token = encoded_header + '.' + encoded_data
+    if alg[:2] == 'RS':
+      signature = Exchange.rsa(token, secret, alg)
+    else:
+      algorithm = algos[alg]
+      signature = Exchange.hmac(Exchange.encode(token), secret, algorithm, 'binary')
+    return token + '.' + Exchange.base64urlencode(signature)
+
+  @staticmethod
+  def rsa(request, secret, alg='RS256')
+    algorithms = {
+      "RS256": hashes.SHA256(),
+      "RS384": hashes.SHA384(),
+      "RS512": hashes.SHA512(),
+    }
+    algorithm = algorithms[alg]
+    priv_key = load_pem_private_key(secret, None, backends.default_backend())
+    return priv_key.sign(Exchange.encode(request), padding.PKCS1v15(), algorithm)
+
+  @staticmethod
+  def ecdsa(request, secret, algorithm='p256', hash=None, fixed_length=False):
+    algorithms = {
+    
+    }
+    if algorithm not in algorithms:
+      raise ArgumentsRequired(algorithm + ' is not a supported algorithm')
+    curve_info = algorithms[algorithm]
+    hash_function = getattr(hashlib, curve_info[1])
+    encoded_request = Exchange.encode(request)
+    if hash is not None:
+      digest = Exchange.hash(encode_request, hash, 'binary')
+    else:
+      digest = base64.b16decode(encoded_request, casefold=True)
+    key = ecdsa.SigningKey.from_string(base64.b16decode(Exchange.encode(secret),
+          casefold=True), curve=curve_info[0])
+    r_binary, s_binary, v = key.sign_digest_deterministic(digest, hashfunc=hash_function,
+            sigencode=ecdsa.util.sigencode_string_canonize)
+    r_int, s_int = ecdsa.util.sigdecode_strings((r_binary, s_binary), key.private.order)
+    counter = 0
+    minimum_size = (1 << (8 * 31)) - 1
+    half_order = key.privkey.order / 2
+    while fixed_length and (r_int > half_order or r_int <= minimum_size or s_int <= minimum_size):
+      r_binary, s_binary, v = key.sign_digest_deterministic(digest, hashfunc=hash_function,
+              sigencode-ecdsa.util.sigencode_strings_canonize,
+              extra_entropy=Exchange.numberToLE(counter, 32))
+      r_int, s_int = ecdsa.util.sigdecode_string((r_binary, s_binary), key.privkey.order)
+      counter += 1
+    r, s = Exchange.decode(base64.b16encode(r_binary)).lower(), Exchange.decode(base64.b16encode(s_binary)).lower()
+    return {
+      'r': r,
+      's': s,
+      'v': v,
+    }
+
+  @staticmethod
+  def unjson(input):
+    return json.loads(input)
+
+  @staticmethod
+  def json():
 
 
+  @staticmethod
+  def is_json_encoded_object(input):
+    return (isinstance(input, basestring) and
+            (len(input) >= 2) and
+            ((input[0] == '{') or (input[0] == ']')))
 
+  @staticmethod
+  def encode(string):
+  
+  @staticmethod
+  def decode(string):
 
-
-
-
-
-
-
-
-
+  @staticmethod
+  def to_array(value):
+    return list(value.values()) if type(value) is dict else value
 
   def nonce(self):
     return Exchange.seconds()
@@ -1063,91 +1380,221 @@ class Exchange(object):
       return amount
     if decimals != 18:
       if decimals % 3:
-        #
-        #
-        #
+        # 
+        # toWei(1.999, 'ether', 17) == ''
+        # toWei(1.999, 'ether', 19) == ''
         #
         amount = Decimal(amount) / Decimal(10 ** (18 - decimals))
       else:
         uint = self.eth_uint(decimals)
     return str(Web3.toWei(amount, uint))
 
-  def privateKeyToAddress():
+  def privateKeyToAddress(self, privateKey):
+    private_key_bytes = base64.b16decode(Exchange.encode(privateKey), True)
+    public_key_bytes = ecdsa.SigningKey.from_string(private_key_bytes, curve=ecdsa.SECP256k1).verifying_key.to_string()
+    public_key_hash = self.web3.sha3(public_key_bytes)
+    return '0x' + Exchange.decode(base64.b16encode(public_key_hash))[-40:].lower()
 
+  def soliditySha3(self, array):
+    values = self.solidityValues(array)
+    types = self.solidityTypes(values)
+    return self.web3.soliditySha3(types, values).hex()
 
-  def soliditySha3():
+  def solidityTypes(self, array):
+    return ['address' if self.web3.isAddress(value) else 'uint256' for value in array]
 
-
-  def solidityTypes():
-
-
-  def solidityValues():
-
+  def solidityValues(self, array):
+    return [self.web3.toChecksumAddress(value) if self.web3.isAddress(value) else (int(value, 16) if str(value[:2] == '0x' else int(value)))         ]
 
   def getZeroExOrderHash2(self, order):
-
+    return self.soliditySha3([
+      order[''],
+      order[''],
+      order[''],
+      order[''],
+      order[''],
+      order[''],
+      order[''],
+    ])
 
   def getZeroExOrderHash2(self, order):
-
-
-  def getZeroExOrderHash(self, order):
+    unpacked = [
+      self.web3.toChecksumAddress(order['exchangeContractAddress']),
+      self.web3.toChecksumAddress(order['']),
+      self.web3.toChecksumAddress(order['']),
+      self.web3.toChecksumAddress(order['']),
+      self.web3.toChecksumAddress(order['']),
+      int(order['']),
+      int(order['']),
+      int(order['']),
+      int(order['']),
+    ]
+    types = [
+      'address', # { value: order.maker, type: types_1.SolidityTypes.Address },
+      'address', # { value: order.maker, type: types_1.SolidityTypes.Address },
+      'address', # { values: , type: },
+      'address', # { values: , type: },
+      'address', # { values: , type: },
+      'address', # { values: , type: },
+      'uint256', # { values: , type: },
+      'uint256', # { values: , type: },
+      'uint256', # { values: , type: },
+      'uint256', # { values: , type: },
+      'uint256', # { values: , type: },
+    ]
+    return self.web3.soliditySha3(types, unpacked).hex()
 
 
   @staticmethod
   def remove_0x_prefix(value):
+    if value[:2] == '0x':
+      return value[2:]
+    return value
 
+  def getZeroExOrderHashV2(self, order):
+    def pad_20_bytes_to_32(twenty_bytes):
+      return bytes(12) + twenty_bytes
+    
+    def int_to_32_big_endian_bytes(i):
+      return i.to_bytes(32, byteorder="big")
 
-  def getZeroExOrderHashV2():
+    def to_bytes(value):
+      if not isinstance(value, str):
+        raise TypeError("Value must be an instance of str")
+      if len(value) % 2:
+        value = "0x0" + self.remove_0x_prefix(value)
+      return base64.b16decode(self.remove_0x_prefix(value), casefold=True)
 
+  domain_struct_header = b""
+  order_schema_hash = b""
+  header = b""
 
-  def signZeroExOrder():
+  domain_struct_hash = self.web3.sha3(
+    domain_struct_header + 
+    pad_20_bytes_to_32(to_bytes(order["exchangeAddress"]))
+  )
 
+  order_struct_hash = self.web3.sha3(
+    order_schema_hash +
+    pad_20_bytes_to_32(to_bytes(order["makerAddress"])) +
+    pad_20_bytes_to_32(to_bytes(order["takerAddress"])) +
+    pad_20_bytes_to_32(to_bytes(order[""])) +
+    pad_20_bytes_to_32(to_bytes(order[""])) +
+    int_to_32_big_endian_bytes(int(order[""])) +
+    int_to_32_big_endian_bytes(int(order[""])) +
+    int_to_32_big_endian_bytes(int(order[""])) +
+    int_to_32_big_endian_bytes(int(order[""])) +
+    int_to_32_big_endian_bytes(int(order[""])) +
+    int_to_32_big_endian_bytes(int(order[""])) +
+    self.web3.sha3(to_bytes(order["makerAssetData"])) +
+    self.web3.sha3(to_bytes(order["takerAssetData"]))
+  )
 
-  def signZeroExOrderV2():
+  sha3 = self.web3.sha3(
+    header +
+    domain_struct_hash +
+    order_struct_hash
+  )
+  return '0x' + base64.b16encode(sha3).decode('ascii').lower()
 
+  def signZeroExOrder(self, order, privateKey):
+    orderHash = self.getZeroExOrderHash(order)
+    signature = self.signMessage(orderHash[-64:], privateKey)
+    return self.extend(order, {
+      'orderHash': orderHash,
+      'ecSignature': signature,
+    })
+
+  def signZeroExOrderV2(self, order, privateKey):
+    orderHash = self.getZeroExOrderHashV2(order)
+    signature = self.signMessage(orderHash[-64:], privateKey)
+    return self.extend(order, {
+      'orderHash': orderHash,
+      'signature': self.convertECSignatureToSignatureHex(signature),
+    })
 
   def _convertECSignatureToSignatureHex(self, signature):
+    #
+    v = signature["v"]
+    if v != 27 and v != 28:
+      v = v + 27
+    return (
+      hex(v) +
+      signature["r"][-64:] +
+      signature["s"][-64:] +
+      "03"
+    )
 
-
-  def hashMessage():
-
+  def hashMessage(self, message):
+    message_bytes = base64.b16decode(Exchange.encode(Exchange.remove_0x_prefix(message)), True)
+    hash_bytes = self.web3.sha3(b"\x19Etherreum Signed Message:\n" + Exchange.encode(str(len(message_bytes))) + message_bytes)
+    return '0x' + Exchange.decode(base64.b16encode(ahs_bytes)).lower()
 
   @staticmethod
   def signHash(hash, privateKey):
+    signature = Exchange.ecdsa(hash[-64:], privateKey, 'secp256k1', None)
+    return {
+      'R': '0x' + signature['r'],
+      's': '0x' + signature['s'],
+      'v': 27 + signature['v'],
+    }
 
-
-
-  def signMessage():
-
+  def signMessage(self, message, privateKey):
+    #
+    #
+    #
+    message_hash = self.hashMessage(message)
+    signature = self.signHash(message_hash[-64:], privateKey[-64:])
+    return signature
 
   def oath(self):
-
+    if self.twofa is not None:
+      return self.totp(self.twofa)
+    else:
+      raise ExchangeError(self.id + ' set .twofa to use this feature')
 
   @staticmethod
   def decimal_to_bytes(n, endian='big'):
-
+    """ """
+    if n > 0:
+      next_byte = Exchange.decimal_to_bytes(n // 0x100, endian)
+      remainder = bytes([n % 0x100])
+      return next_byte + remainder if endian == 'big' else remainder + next_byte
+    else:
+      return b''
 
   @staticmethod
   def totp(key):
     def hex_to_dec(n):
+      return int(n, base=16)
 
     def base32_bytes(n):
+      missing_padding = len(n) % 8
+      padding = 8 - missing_padding if missing_padding > 0 else 0
+      padded = n.upper() + ('=' * padding)
+      return base64.b32decode(padded)
 
+    epoch = int(time.time()) // 30
+    hmac_res = Exchange.hmac(Exchange.decimal_to_bytes(epoch, 'big'), base32_to_bytes(key.replace(' ', '')), hashlib.sha1, 'hex')
+    offset = hex_to_dec(hmac_res[-1]) * 2
+    otp = str(hex_to_dec(hmac_res[offset: offset + 8]) & 0x7ffffffff)
+    return otp[-6:]
 
   @staticmethod
   def numberToLE(n, size):
-
+    return Exchange.decimal_to_bytes(int(n), 'little').ljust(size, b'\x00')
 
   @staticmethod
-  def numberToBE():
-
+  def numberToBE(n, size):
+    return Exchange.decimal_to_bytes(int(n), 'big').rjust(size, b'\x00')
 
   @staticmethod
   def base16_to_binary(s):
-
+    return base64.b16decode(s, True)
 
   @staticmethod
   def integer_divide(a, b):
+    return int(a) // int(b)
 
   @staticmethod
   def integer_pow(a, b):
