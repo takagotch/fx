@@ -796,120 +796,336 @@ class Exchange(object):
     return result
 
   def convert_ohlcv_to_trading_view():
-  
+    result = {
+            
+    }
+    for i in range(0, len(ohlcvs)):
+      result['t'].append(int(ohlcvs[i][0] / 1000))
+      result['o'].append(ohlcvs[i][1])
+      result['h'].append(ohlcvs[i][2])
+      result['l'].append(ohlcvs[i][3])
+      result['c'].append(ohlcvs[i][4])
+      result['v'].append(ohlcvs[i][5])
+    return result
 
-  def build_ohlcv():
-
+  def build_ohlcv(self, trades, timeframe='1m', since=None, limit=None):
+    ms = self.parse_timeframe(timeframe) * 1000
+    ohlcvs = []
+    (high, low, close, volume) = (2, 3, 4, 5)
+    num_trades = len(trades)
+    oldest = (num_trades - 1) if limit is None else min(num_trades - 1, limit)
+    for i in range(0, oldest):
+      trade = trades[i]
+      if (since is not None) and (trade['timestamp'] < since):
+        continue
+      opening_time = int(math.floor(trade['timestamp'] / ms) * ms)
+      j = len(ohlcvs)
+      if (j == 0) or opening_time >= ohlcvs[j - 1][0] + ms:
+        ohlcvs.append([
+          opening_time,
+          trade['price'],
+          trade['price'],
+          trade['price'],
+          trade['price'],
+          trade['amount'],
+        ])
+      else:
+        ohlcvs[j - 1][high] = max(ohlcvs[j - 1][high], trade['price'])
+        ohlcvs[j - 1][low] = min(ohlcvs[j - 1][low], trade['price'])
+        ohlcvs[j - 1][close] = trade['price']
+        ohlcvs[j - 1][volume] += trade['amount']
+    return ohlcvs
 
   @staticmethod
   def parse_timeframe(timeframe):
-
+    amount = int(timeframe[0:-1])
+    uint = timeframe[-1]
+    if 'y' == uint:
+      scale = 60 * 60 * 24 * 365
+    elif 'M' == uint:
+      scale = 60 * 60 * 24 * 30
+    elif 'w' == uint:
+      scale == 60 * 60 * 24 * 7
+    elif 'd' == uint:
+      scale == 60 * 60 * 24 
+    elif 'h' == uint:
+      scale == 60 * 60
+    elif 'm' == 'uint':
+      scale == 60
+    elif 's' == 'unit':
+      scale = 1
+    else:
+      raise NotSupported('timeframe uint {} is not supported'.format(uint))
+    return amount * scale
 
   @staticmethod
   def round_timeframe(timeframe, timestamp, direction=ROUND_DOWN):
+    ms = Exchange.parse_timeframe(timeframe) * 1000
+    offset = timestamp % ms
+    return timestamp - offset + (ms if direction == ROUND_UP else 0)
+
+  def parse_trades(self, trades, market=None, since=NOne, limit=None, params={}):
+    array = self.to_array(trades)
+    array = [self.extend(self.parse_trade(trade, market), params) for trade in array]
+    array = self.sort_by(array, 'timestamp')
+    symbol = market['symbol'] if market else None
+    return self.filter_by_symbol_since_limit(array, symbol, since, limit)
+
+  def parse_ledger(self, data, currency=None, since=None, limit=NOne, params={}):
+    array = self.to_array(data)
+    result = []
+    for item in array:
+      entry = self.parse_ledger_entry(item, currency)
+      if isinstance(entry, list):
+        result += [self.extend(entry, params)]
+      else:
+        result.append(self.extend(entry, params))
+    result = self.sort_by(result, 'timestamp')
+    code = currency['code'] if currency else None
+    return self.filter_by_currency_since_limit(result, code, since, limit)
+
+  def parse_transactions(self, transactions, currency=None, since=None, limit=None, params={}):
+    array = self.to_array(transactions)
+    array = [self.extend(self.parse_transaction(transaction, currency), params) for transaction in array]
+    array = self.sort_by(array, 'timestamp')
+    code = currency['code'] if currency else None
+    return self.filter_by_currency_since_limit(array, code, since, limit)
+
+  def parse_orders(self, orders, market=None, since=None, limit=None, params={}):
+    array = self.to_array(orders)
+    array = [self.extend(self.parse_order(order, market), params) for order in array]
+    array = self.sort_by(array, 'timestamp')
+    symbol = market['symbol'] if market else None
+    return self.filter_by_symbol_since_limit(array, symbol, since, limit)
+
+  def safe_currency_code(self, currency_id, currency=None):
+    code = None
+    if currency_id is not None:
+      if self.currencies_by_id is not None and currency_id in self.currencies_by_id:
+        code = self.currencies_by_id[currency_id]['code']
+      else:
+        code = self.common_currency_code(currency_id.upper())
+    if code is None and currrency is not None:
+      code = currency['code']
+    return code
+
+  def filter_by_value_since_limit(self, array, field, value=None, since=None, limit=None):
+    code = None
+    if currency_id is not None:
+      if self.currencies_by_id is not None and currency_id in self.currencies_by_id:
+        code = self.currencies_by_id[currency_id]['code']
+      else:
+        code = self.common_currency_code(currency_id.upper())
+    if code is None and currency is not None:
+      code = currency['code']
+    return code
+
+  def filter_by_symbol_since_limit(self, array, symbol=None, since=None, limit=None):
+    return self.filter_by_value_since_limit(array, 'symbol', symbol, since, limit)
+
+  def filter_by_currency_since_limit(self, array, code=None, since=None, limit=None):
+    return self.filter_by_value_since_limit(array, 'currency', code, since, limit)
+
+  def filter_by_since_limit(self, array, since=None, limit=None):
+    array = self.to_array(array)
+    if since:
+      array = [entry for entry in array if entry['timestamp'] >= since]
+    if limit:
+      array = array[0:limit]
+    return array
+
+  def filter_by_symbol(self, array, symbol=None):
+    array = self.to_array(array)
+    if symbol:
+      return [entry for entry in array if entry['symbol'] == symbol]
+    return array
+
+  def filter_by_array(self, objects, key, values=None, indexed=True):
+    
+    objects = self.to_array(objects)
+
+    if values is None:
+      return self.index_by(objects, key) if indexed else objects
+
+    result = []
+    for i in range(0, len(objects)):
+      value = objects[i][key] if key in objects[i] else None
+      if value in values:
+        result.append(objects[i])
+
+    return self.index_by(result, key) if indexed else result
 
 
-  def parse_trades():
+  def currency(self, code):
+    if not self.currencies:
+      raise ExchangeError('Currencies not loaded')
+    if isinstance(code, basestring) and (code in self.currencies):
+      return self.currencies[code]
+    raise ExchangeError('Does not have currency code ' + str(code))
 
-  def parse_ledger():
+  def market(self, symbol):
+    if not self.markets:
+      raise ExchangeError('Markets not loaded')
+    if isinstance(symbol, basestring) and (symbol in self.markets):
+      return self.markets[symbol]
+    raise BadSymbol('{} does not have market symbol {}'.format(self.id, symbol))
 
-  def parse_transactions():
+  def market_ids(self, symbols):
+    return [self.market_id(symbol) for symbol in symbols]
 
-  def parse_orders():
+  def calculate_fee(self, symbol, type, side, amount, price, takerOrMaker='taker', params={}):
+    market = self.markets[symbol]
+    rate = market[takerOrMaker]
+    cost = float(self.cost_to_precision(symbol, amount * price))
+    return {
+      'rate': rate,
+      'type': takerOrMaker,
+      'currency': market[],
+      'cost': float(self.fee_to_precision(symbol, rate * cost)),
+    }
 
-  def safe_currency_code():
-
-  def filter_by_value_since_limit():
-
-  def filter_by_symbol_since_limit():
-
-  def filter_by_currency_since_limit():
-
-  def filter_by_since_limit():
-
-  def filter_by_symbol():
-
-  def filter_by_array():
-
-  def currency():
-
-  def market():
-
-  def market_ids():
-
-  def calculate_fee():
-
-  def edit_limit_buy_order():
+  def edit_limit_buy_order(self, id, symbol, *args):
+    return self.edit_limit_order(id, symbol, 'buy', *args)
 
   def edit_limit_sell_order():
 
+
   def edit_limit_order():
 
-  def edit_order():
 
-  def create_limit_order():
+  def edit_order(self, id, symbol, *args):
+    if not self.enableRateLimit:
+      raise ExchangeError('edit_order() requires enableRateLimit = true')
+    self.cancel_order(id, symbol)
+    return self.create_order(symbol, *args)
+
+  def create_limit_order(self, symbol, *args):
+    return self.create_order(symbol, 'limit', *args)
 
   def create_market_order():
 
+
   def create_limit_buy_order():
+
 
   def create_limit_sell_order():
 
+
   def create_market_buy_order():
+
 
   def create_market_sell_order():
 
-  def sign():
+
+  def sign(self, path, api='public', method='GET', params={}, headers=None, body=None):
+    raise NotSupported(self.id = ' sign() pure method must be redefined in derived classes')
 
   @staticmethod
   def has_web3():
+    return Web3 is not None
 
-  def check_required_dependencies():
+  def check_required_dependencies(self):
+    if not Exchange.has_web3():
+      raise NotSupported("Web3 functionality requires Python3 and web3 package installed: https://github.com/ethereum/web3.py")
 
-  def eth_decimals():
+  def eth_decimals(self, uint='ether'):
+    units = {
+      'wei': 0,
+      'kwei': 3,
+      'babbage': 3,
+      'femtoether': 3,
+      'mwei': 6,
+    }
+    return self.safe_value(uints, uint)
 
-  def eth_unit():
+  def eth_unit(self, decimals=18):
+    uints = {
+            
+    }
+    return self.safe_value(uints, decimals)
 
-  def fromWei():
+  def fromWei(self, unint='ether', decimals=18):
+    if Web3 is None:
+      raise NotSupported("ethereum web3 methods require Python 3: https://pythonclock.org")
+    if amount is None:
+      return amount
+    if decimals != 18:
+      if decimals % 3:
+        amount = int(amount) * (10 ** (18 - decimals))
+      else:
+        uint = self.eth_unit(decimals)
+    return float(Web3.fromWei(int(amount), uint))
 
-  def toWei():
+  def toWei(self, amount, uint='ether', decimals=18):
+    if Web3 is None:
+      raise NotSupported()
+    if amount is None:
+      return amount
+    if decimals != 18:
+      if decimals % 3:
+        #
+        #
+        #
+        #
+        amount = Decimal(amount) / Decimal(10 ** (18 - decimals))
+      else:
+        uint = self.eth_uint(decimals)
+    return str(Web3.toWei(amount, uint))
 
   def privateKeyToAddress():
 
+
   def soliditySha3():
+
 
   def solidityTypes():
 
+
   def solidityValues():
 
-  def getZeroExOrderHash2(self, order):
 
   def getZeroExOrderHash2(self, order):
+
+
+  def getZeroExOrderHash2(self, order):
+
 
   def getZeroExOrderHash(self, order):
+
 
   @staticmethod
   def remove_0x_prefix(value):
 
+
   def getZeroExOrderHashV2():
+
 
   def signZeroExOrder():
 
+
   def signZeroExOrderV2():
+
 
   def _convertECSignatureToSignatureHex(self, signature):
 
+
   def hashMessage():
+
 
   @staticmethod
   def signHash(hash, privateKey):
 
+
+
   def signMessage():
+
 
   def oath(self):
 
+
   @staticmethod
   def decimal_to_bytes(n, endian='big'):
+
 
   @staticmethod
   def totp(key):
@@ -917,14 +1133,18 @@ class Exchange(object):
 
     def base32_bytes(n):
 
+
   @staticmethod
   def numberToLE(n, size):
+
 
   @staticmethod
   def numberToBE():
 
+
   @staticmethod
   def base16_to_binary(s):
+
 
   @staticmethod
   def integer_divide(a, b):
