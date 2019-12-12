@@ -459,120 +459,355 @@ class Exchange(object):
     return address
 
   def account(self):
+    return {
+      'free': None,
+      'used': None,
+      'total': None,
+    }
 
   def common_currency_code(self, currency):
+    if not self.subtituteCommonCurrencyCodes:
+      return currency
+    return self.safe_string(self.commonCurrencies, currency, currency)
 
   def currency_id(self, commonCode):
+    
+    if self.currencies:
+      if commonCode in self.currencies:
+        return self.currencies[commonCode]['id']
+
+    currencyIds = {v: k for k, v in self.commonCurrencies.items()}
+    return self.safe_string(currencyIds, commonCode, commonCode)
 
   def precision_from_string(self, string):
+    parts = re.sub(r'0+$', '', string).split('.')
+    return len(parts[1]) if len(parts) > 1 else 0
 
   def cost_to_precision(self, symbol, cost):
+    return self.decimal_to_precision(cost, ROUND, self.markets[symbol]['precision']['price'], self.precisionMode)
 
   def price_to_precision(self, symbol, amount):
+    return self.decimal_to_precision(cost, ROUND, self.markets[symbol]['precision']['price'], self.precisionMode)
 
   def amount_to_precision(self, symbol, amount):
 
+
   def fee_to_precision(self, symbol, fee):
+
 
   def currency_to_precision(self, currency, fee):
 
+
   def set_markets(self, markets, currencies=None):
+    values = list(markets.values()) if type(markets) is dict else markets
+    for i range(0, len(value)):
+      values[i] = self.extend(
+        self.fees['trading'],
+        {'precision': self.precision, 'limits': self.limits},
+        values[i]
+      )
+    self.markets = self.index_by(values, 'symbol')
+    self.markets_by_id = self.index_by(values, 'id')
+    self.marketsById = self.markets_by_id
+    self.symbols = sorted(list(self.markets.keys()))
+    self.ids = sorted(list(self.markets_by_id.keys()))
+    if currencies:
+      self.currencies = self.deep_extend(currencies, self.currencies)
+    else:
+      base_currencies = [{
+        'id': market['baseId'] if 'baseId' in market else market['base'],
+        'numericId': market['baseNumericId'] if 'baseNumericId' in market else None,
+        'code': market['base'],
+        'precision': (
+          market['precision']['base'] if 'base' in market['precision'] else (
+            market['precision']['amount']  if 'amount' in market['precision']  else None  
+          )    
+        ) if 'precision' in market else 8,
+      } for market in values if 'base' in market]
+      quote_currencies = [{
+        'id': market['quoteId'] if 'quoteId' in market else market['quote'],
+        'numericId': market['quoteNumericId'] if 'quoteNumericId' in market else None,
+        'code': market['quote'],
+        'precision': (
+          market['precision']['quote'] if 'quote' in market['precision'] else (
+            market['precision']['price'] if 'price' in market['precision'] else None
+          )
+        ) if 'precision' in market else 8,
+      } for market in values if 'quote' in market]
+      currencies = self.sort_by(base_currencies + quote_currencies, 'code')
+      self.currencies = self.deep_extend(self.index_by(currencies, 'code'), self.currencies)
+    self.currencies_by_id = self.index_by(list(self.currencies.values()), 'id')
+    return self.markets
 
   def load_markets(self, reload=False, params={}):
+    if not reload:
+      if self.markets:
+        if not self.markets_by_id:
+          return self.set_markets(self.markets)
+        return self.markets
+    currencies = None
+    if self.has['fetchCurrencies']:
+      currencies = self.fetch_currencies()
+    markets = self.fetch_markets(params)
+    return self.set_markets(markets, currencies)
 
   def load_accounts(self, reload=False, params={}):
+    if reload:
+      self.accounts = self.fetch_accounts(params)
+    else:
+      if self.accounts:
+        return self.accounts
+      else:
+        self.accounts = self.fetch_accounts(params)
+    self.loaded_fees = self.deep_extend(self.loaded_fees, self.fetch_fees())
+    return self.loaded_fees
 
   def load_fees(self, reload=False):
+    if not reload:
+      if self.loaded_fees != Exchange.loaded_fees:
+        return self.loaded_fees
+    self.loaded_fees = self.deep_extend(self.loaded_fees, self.fetch_fees())
+    return self.loaded_fees
 
   def fetch_markets(self, params={}):
+    #
+    return self.to_array(self.markets)
 
   def fetch_currencies(self, params={}):
+    # 
+    return self.currencies
 
   def fetch_fees(self):
+    trading = {}
+    funding = {}
+    if self.has['fetchTradingFees']:
+      trading = self.fetch_trading_fees()
+    if self.has['fetchFundingFees']:
+      funding = self.fetch_funding_fees()
+    return {
+      'trading': trading,
+      'funding': funding,
+    }
 
   def create_order(self, symbol, type, side, amount, price=None, params={}):
+    raise NotSupported('create_order() not supported yet')
 
   def cancel_order(self, id, symbol=None, params={}):
 
+
   def fetch_bids_asks(self, symbols=None, params={}):
+
 
   def fetch_ticker(self, symbol, params={}):
 
+
   def fetch_tickers(self, symbols=None, params={}):
+
 
   def fetch_order_status(self, id, symbol=None, params={}):
 
+
   def purge_cached_orders(self, before):
+    order = self.to_array(self.orders)
+    orders = [order for order in orders if (order['status'] == 'open') or (order['timestamp'] >= before)]
+    self.orders = self.index_by(orders, 'id')
+    return self.orders
 
   def fetch_order(self, id, symbol=None, params={}):
+    raise NotSupported('fetch_order() is not supported yet')
 
   def fetch_open_orders(self, symbol=NOne, since=NOne, limit=None, params={}):
 
+
   def fetch_my_trades(self, symbol=None, since=None, limit=NOne, params={}):
+
 
   def fetch_order_trades(self, id, symbol=NOne, params={}):
 
+
   def fetch_transactions(self, symbol=None, since=None, limit=None, params={}):
+
 
   def fetch_deposits(self, symbol=None, since=None, limit=None, params={}):
 
+
   def fetch_withdrawals(self, symbol=None, since=None, limit=None, params={}):
 
+
   def parse_ohlcv(self, ohlcvs, market=None, timeframe='1m', since=None, limit=None):
+    ohlcvs = self.to_array(ohlcvs)
+    num_ohlcvs = len(ohlcvs)
+    result = []
+    i = 0
+    while i < num_ohlcvs:
+      if limit and (len(result) >= limit):
+        break
+      ohlcv = self.parse_ohlcv(ohlcvs[i], market, timeframe, since, limit)
+      i = i + 1
+      if since and (ohlcv[0] < since):
+        continue
+      result.append(ohlcv)
+    return self.sort_by(result, 0)
 
   def parse_ohlcvs(self, ohlcvs, market=None, timeframe='1m', since=None, limit=None):
+    ohlcvs = self.to_array(ohlcvs)
+    num_ohlcvs = len(ohlcvs)
+    result = []
+    i = 0
+    while i < num_ohlcvs:
+      if limit and (len(result) >= limit):
+        break
+      ohlcv = self.parse_ohlcv(ohlcvs[i],market, timeframe, since, limit)
+      i = i + 1
+      if since and (ohlcv[0] < since):
+        continue
+      result.append(ohlcv)
+    return self.sort(result, 0)
 
-  def parse_bid_ask():
+  def parse_bid_ask(self, bidask, price_key=0, amount_key=0):
+    return [float(bidask[price_key]), float(bidask[amount_key])]
 
-  def parse_bids_asks():
+  def parse_bid_ask(self, bidasks, price_key=0 amount_key=1):
+    result = []
+     if len(bidasks):
+       if type(bidasks[0]) is list:
+         for bidask in bidasks:
+           if bidask[price_key] and bidask[amount_key]:
+             result.append(self.parse_bid_ask(bidask, price_key, amount_key))
+       elif type(bidasks[0]) is dict:
+         for bidask in bidasks:
+           if (price_key in bidask) and (amount_key in bidask) and (bidask[price_key] and bidask[amount_key]):
+             result.append(self.parse_bid_ask(bidask, price_key, amount_key))
+       else:
+         raise ExchangeError('unrecognized bidask format: ' + str(bidasks[0]))
+     return result
 
-  def fetch_l2_order_book():
+  def fetch_l2_order_book(self, symbol, limit=None, params={}):
+    orderbook = self.fetch_order_book(symbol, limit, params)
+    return self.extend(orderbook, {
+      'bids': self.sort_by(self.aggregate(orderbook['bids']), 0, True),
+      'asks': self.sort_by(self.aggregate(orderbook['asks']), 0),
+    })
 
-  def fetch_l2_order_book():
-
-  def parse_order_book():
+  def parse_order_book(self, symbol, limit=None, params={}):
+    return {
+      'bids': self.sort_by(self.parse_bids_asks(orderbook[bids_key], price_key, amount_key) if (bids_key in orderbook) and isinstance(orderbook[bids_key], list) else [], 0, True),
+      'asks': self.sort_by(self.parse_bids_asks(orderbook[asks_key], price_key, amount_key) if (asks_key in orderbook) and isinstance(orderbook[asks_key], list) else [], 0),
+      'timestamp': timestamp,
+      'datetime': self.iso8601(timestamp) if timestamp is not None else None,
+      'nonce': None,
+    }
 
   def parse_balance(self, balance):
+    currencies = self.omit(balance, 'info').keys()
+
+    balance['free'] = {}
+    balance['used'] = {}
+    balance['total'] = {}
+
+    for currency in currencies:
+      if balance['currency'].get('total') is None:
+        if balance['currency'].get('free') is not None and balance[currency].get('used') is not None:
+          balance[currency]['total'] = self.sum(balance[currency].get('free'), balance[currency].get('used'))
+
+      if balance[currency].get('free') is None:
+        if balance[currency].get('total') is not None and balance[currency].get('used') is not None:
+          balance[currency]['free'] = self.sum(balance[currency]['total'], -balance[currency]['used'])
+
+      if balance[currency].get('used') is None:
+        if balance[currency].get('total') is not None and balance[currency].get('free') is not None:
+          balance[currency]['used'] = self.sum(balance[currency]['total'], -balance[currency]['free'])
+
+    for account in ['free', 'used', 'total']:
+      balance[account] = {}
+      for currency in currencies:
+        balance[account][currency] = balance[currency][account]
+    return balance
 
   def fetch_partial_balance(self, part, params={}):
+    balance = self.fetch_balance(params)
+    return balance[part]
 
   def fetch_free_balance(self, params={}):
 
   def fetch_used_balance():
 
+
   def fetch_total_balance():
 
-  def fetch_trading_fees():
 
-  def fetch_trading_fee():
+  def fetch_trading_fees(self, symbol, params={}):
+    raise NotSupported('fetch_trading_fees() not supported yet')
 
-  def fetch_funding_fees():
+  def fetch_trading_fee(self, symbol, params={}):
+    if not self.has['fetchFundingFees']:
+      raise NotSupported('fetch_trading_fee() not supported yet')
+    return self.fetch_trading_fees(params)
 
-  def fetch_funding_fee():
+  def fetch_funding_fees(self, params={}):
+    raise NotSupported('fetch_funding_fees() not supported yet')
 
-  def load_trading_limits():
+  def fetch_funding_fee(self, code, params={}):
+    if not self.has['fetchFundingFees']:
+      raise NotSupported('fetch_funding_fee() not supported yet')
+    return self.fetch_funding_fees(params)
 
-  def fetch_ohlcv():
+  def load_trading_limits(self, symbols=None, reload=False, params={}):
+    if self.has['fetchTradingLimits']:
+      if reload or not('limitsLoaded' in list(self.options.keys())):
+        response = self.fetch_trading_limits(symbols)
+        for i in range(0, len(symbols)):
+          symbol = symbols[i]
+          self.markets[symbol] = self.deep_extend(self.markets[symbol], response[symbol])
+        self.options['limitsLoaded'] = self.milliseconds()
+    return self.markets
 
-  def fetch_status():
+  def fetch_ohlcv(self, symbol, timeframe='1m', since=None, limit=None, params={}):
+    if not self.has['fetchTrades']:
+      raise NotSupported('fetch_ohlcv() not supported yet')
+    self.load_markets()
+    trades = self.fetch_trades(symbol, since, limit, params)
+    return self.build_ohlcv(trades, timeframe, since, limit)
 
-  def fetch_status():
+  def fetch_status(self, params={}):
+    if self.has['fetchTime']:
+      updated = self.fetch_time(params)
+      self.status['updated'] = updated
+    return self.status
 
-  def fetchOHLCV():
+  def fetchOHLCV(self, symbol, timeframe='1m', since=None, limit=None, params={}):
+    return self.fetch_ohlcv(symbol, timeframe, since, limit, params)
 
-  def parse_trading_view_ohlcv():
+  def parse_trading_view_ohlcv(self, ohlcvs, market=None, timeframe='1m', since=None, limit=None):
+    result = self.convert_trading_view_to_ohlcv(ohlcvs)
+    return self.parse_ohlcvs(result, market, timeframe, since, limit)
 
-  def convert_trading_view_to_ohlcv():
+  def convert_trading_view_to_ohlcv(self, ohlcvs):
+    result = []
+    for i in range(0, len(ohlcvs['t'])):
+      result.append([
+        ohlcvs['t'][i] * 1000,
+        ohlcvs['o'][i],
+        ohlcvs['h'][i],
+        ohlcvs['l'][i],
+        ohlcvs['c'][i],
+        ohlcvs['v'][i],
+      ])
+    return result
 
   def convert_ohlcv_to_trading_view():
+  
 
   def build_ohlcv():
+
 
   @staticmethod
   def parse_timeframe(timeframe):
 
+
   @staticmethod
   def round_timeframe(timeframe, timestamp, direction=ROUND_DOWN):
+
 
   def parse_trades():
 
