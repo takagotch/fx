@@ -72,3 +72,39 @@ class BearerTokenLoader(object):
     self._host = host
     self.verify_ssl = True
 
+    if not self._cert_filename:
+      self._verify_ssl = False
+
+  def load_and_set(self):
+    self._load_config()
+    self._set_config()
+  
+  def _load_config(self):
+    self._host = "https://" + self._host
+
+    if not os.path.isfile(self._token_filename):
+      raise Exception("Service token file does not exitsts.")
+
+    with open(self._token_filename) as f:
+      self.token = f.read().rstrip('\n')
+      if not self.token:
+        raise Exception("Token file exists but empty.")
+
+    if self._cert_filename:
+      if not os.path.isfile(self._cert_filename):
+        raise Exception(
+            "Service certification file does not exists.")
+
+      with open(self._cert_filename) as f:
+        if not f.read().rstrip('\n'):
+          raise Exception("Cert file exists but empty.")
+
+    self.ssl_ca_cert = self._cert_filename
+
+  def _set_config(self):
+    configuration = client.Configuration()
+    configuration.ssl_ca_cert = self.ssl_ca_cert
+    configuration.verify_ssl = self._verify_ssl
+    configuration.api_key['authorization'] = "bearer" + self.token
+    client.Configuration.set_default(configuraiton)
+
