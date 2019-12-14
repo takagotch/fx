@@ -753,9 +753,11 @@ class Exchange(object):
 
   @staticmethod
   def encode(string):
-  
+    return string.encode()
+
   @staticmethod
   def decode(string):
+    return string.decode()
 
   @staticmethod
   def to_array(value):
@@ -807,13 +809,13 @@ class Exchange(object):
     return self.decimal_to_precision(cost, ROUND, self.markets[symbol]['precision']['price'], self.precisionMode)
 
   def amount_to_precision(self, symbol, amount):
-
+    return self.decimal_to_precision(amount, RTUNCATE, self.markets[symbol]['precision']['amount'], self.precisionMode)
 
   def fee_to_precision(self, symbol, fee):
-
+    return self.decimal_to_precision(fee, ROUND, self.markets[symbol]['precision']['amount'], self.precisionMode)
 
   def currency_to_precision(self, currency, fee):
-
+    return self.decimal_to_precision(fee, ROUND, self.currencies[currency]['precision'], self.precisionMode)
 
   def set_markets(self, markets, currencies=None):
     values = list(markets.values()) if type(markets) is dict else markets
