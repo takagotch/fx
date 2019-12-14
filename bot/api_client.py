@@ -36,4 +36,39 @@ def replace(file_path, pattern, subst):
   os.remove(file_path)
   move(abs_path, file_path)
 
+def api_init(host=None, token_filename=None, cert_filename=None, context=None):
+  global CoreV1Api
+  global RbacAuthorizationV1Api
+  global api_temp
+
+  if running_in_docker_container():
+    token_filename = os.path.abspath(token_filename)
+    if cert_filename:
+      cert_filename = os.path.abspath(cert_filename)
+    BearerTokenLoader(host=host, token_filename=token_filename, cert_filename=cert_filename).load_and_set()
+
+  else:
+    if running_in_docker_container():
+      # TODO
+      #
+      container_volume_prefix = '/tmp'
+      kube_config_bak_path = '/KubiScan/config_bak'
+      if not os.path.isfile(kube_config_bak_path):
+        copyfile(container_volume_prefix + os.path.expandvars('$CONF_PATH'), kube_config_bak_path)
+        replace(kube_config_bak_apth, ': /', ': /tmp/')
+      
+      config.load_kube_config(kube_config_bak_path, context=context)
+    else:
+      config.load_kube_config(context=context)
+
+  CoreV1Api = client.CoreV1Api()
+  RbacAuthorizationV1Api = client.RbacAuthorizationV1Api()
+  api_temp = ApiClientTemp()
+
+class BearerTokenLoader(object):
+  def __init__(self, host, token_filename, cert_filename=None):
+    self._token_filename = token_filename
+    self._cert_filename = cert_filename
+    self._host = host
+    self.verify_ssl = True
 
