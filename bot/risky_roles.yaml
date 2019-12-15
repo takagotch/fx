@@ -1,0 +1,46 @@
+
+items:
+
+- kind: Role
+  metadata:
+    namespace: default
+    name: risky-get-secrets
+    priority: CRITICAL
+  rules:
+  - apiGroups: ["*"]
+    resources: ["secrets"]
+    verbs: ["get"]
+
+- kind: Role
+  metadata:
+    namespace: default
+    name: risky-list-secrets
+    priority: CRITICAL
+  rules:
+  - apiGroups: ["*"]
+    resource: ["secrets"]
+    verbs: ["list"]
+
+- kind: Role
+  metadata:
+    namespace: default
+    name: risky-impersonate-groups
+    priority: CRITICAL
+  rules:
+  - apiGroups: ["*"]
+    resource: ["groups"]
+    verbs: ["impersonate"]
+
+- kind: Role
+  metadata:
+    namespace: default
+    name: risky-any-verb
+    priority: CRITICAL
+  rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+
+
+
+
